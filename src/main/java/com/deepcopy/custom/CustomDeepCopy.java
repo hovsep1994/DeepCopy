@@ -1,7 +1,7 @@
 package com.deepcopy.custom;
 
 import com.deepcopy.DeepCopyUtil;
-import sun.misc.Unsafe;
+import sun.reflect.ReflectionFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 
 public class CustomDeepCopy {
+
+    private static final ReflectionFactory reflectionFactory = ReflectionFactory.getReflectionFactory();
 
     public static Object copy(Object original,
                               Map<Object, Object> visited) throws Exception {
@@ -51,15 +53,14 @@ public class CustomDeepCopy {
                     return constructor.newInstance(original);
                 }
             }
-            return instantiateUsingUnsafe(clazz);
+            return instantiateWithoutConstructor(clazz);
         }
     }
 
-    private static Object instantiateUsingUnsafe(Class<?> clazz) throws Exception {
-        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
-        unsafeField.setAccessible(true);
-        Unsafe unsafe = (Unsafe) unsafeField.get(null);
-        return unsafe.allocateInstance(clazz);
+    private static Object instantiateWithoutConstructor(Class<?> clazz) throws Exception {
+        Constructor<Object> objectConstructor = Object.class.getDeclaredConstructor();
+        Constructor<?> customConstructor = reflectionFactory.newConstructorForSerialization(clazz, objectConstructor);
+        return clazz.cast(customConstructor.newInstance());
     }
 
 }
